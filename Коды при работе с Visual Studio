@@ -1,0 +1,104 @@
+# Коды при работе с Visual Studio
+
+1. Для страницы “вход” - необходимо PasswordBox и обычных Box
+
+```csharp
+<Grid>
+        <TextBox x:Name="UsernameTextBox" VerticalAlignment="Center" 
+         Height="66" Margin="215,0,285,0" TextWrapping="Wrap"
+         FontSize="22" VerticalContentAlignment="Center"/>
+        <PasswordBox Name="passwordBox" HorizontalAlignment="Left" Margin="215,269,0,0" VerticalAlignment="Top"
+              FontSize="24" Width="300" Height="60" VerticalContentAlignment="Center"/>
+        <Button Content="Button" HorizontalAlignment="Left" Height="50" Margin="255,359,0,0" VerticalAlignment="Top" Width="220" Click="Button_Click"/>
+    </Grid>
+```
+
+1. Как реализовать вход в аккаунт
+
+Имеется логин и пароль, у них соответствующие name. Ниже обработчик кнопки (весь код можно посмотреть - https://github.com/dilimkh/code_bd/blob/main/vhod 
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+
+namespace probnik
+{
+    /// <summary>
+    /// Логика взаимодействия для MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        private Users currentUser;
+
+        public class AuthenticationService
+        {
+            public static Users AuthenticateUser(string login, string password)
+            {
+                using (var context = new DatabaseEntities()) // Замените на ваш контекст данных
+                {
+                    return context.Users.FirstOrDefault(u => u.Login == login && u.Password == password);
+                }
+            }
+        }
+
+        public MainWindow()
+        {
+            InitializeComponent();
+
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            // Получение имени пользователя и пароля из текстовых полей
+            string login = UsernameTextBox.Text;
+            string password = passwordBox.Password; // Для PasswordBox используется свойство Password
+
+            // Аутентификация пользователя
+            currentUser = AuthenticationService.AuthenticateUser(login, password);
+
+            if (currentUser != null)
+            {
+                // Проверка роли пользователя и открытие соответствующего окна
+                if (currentUser.RoleID == 1)
+                {
+                    // Открыть окно для пользователя с ролью 1
+                    var admin = new admin();
+                    admin.Show();
+                    this.Close();
+                }
+                else if (currentUser.RoleID == 2)
+                {
+                    // Открыть другое окно для пользователя с ролью 2
+                    var cleint = new cleint();
+                    cleint.Show();
+                    this.Close();
+                }
+                // Можно добавить дополнительные условия для других ролей
+            }
+            else
+            {
+                // Неверные учетные данные
+                MessageBox.Show("Неверный логин или пароль. Пожалуйста, попробуйте снова.", "Ошибка входа", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+}
+```
+
+ВХОД РЕАЛИЗОВАН
+
+ИДЕМ ДАЛЬШЕ - 
+
+[КАК ДОБАВИТЬ ТАБЛИЦУ, ЧТОБЫ ОТОБРАЖАЛИСЬ ДАННЫЕ](https://www.notion.so/9fd5ee2c88e941f28a8b2ca3e192b901?pvs=21)
