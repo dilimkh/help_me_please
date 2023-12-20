@@ -1,0 +1,42 @@
+****Открытие Нового Окна Поверх Других Окон****
+
+```csharp
+var newWindow = new NewWindow(); // NewWindow - это класс вашего нового окна
+newWindow.Topmost = true;        // Установка окна поверх других окон
+newWindow.Show();
+```
+
+****Комбинация Открытия Нового Окна и Закрытия Текущего****
+
+```csharp
+private void OpenNewWindowAndCloseCurrent()
+{
+    var newWindow = new NewWindow(); // Создание нового окна
+    newWindow.Topmost = true;        // Установка нового окна поверх других окон
+    newWindow.Show();                // Открытие нового окна
+
+    this.Close();                    // Закрытие текущего окна
+}
+```
+
+****Создание Кнопки Выхода****
+
+```csharp
+<Button Content="Выход из аккаунта" Click="LogoutButton_Click"/>
+```
+
+```csharp
+private void LogoutButton_Click(object sender, RoutedEventArgs e)
+{
+    // Здесь ваш код для "разлогинивания" пользователя
+    // Например, можно сбросить текущего пользователя
+    currentUser = null;
+
+    // Закрыть текущее окно
+    this.Close();
+
+    // Открыть окно входа в систему
+    var loginWindow = new LoginWindow();
+    loginWindow.Show();
+}
+```
