@@ -1,0 +1,282 @@
+КАК ДОБАВИТЬ ТАБЛИЦУ, ЧТОБЫ ОТОБРАЖАЛИСЬ ДАННЫЕ
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/40ef5a54-6a28-4135-b9e8-a90f5695d8b9/853c5c20-6aab-4e07-b008-b8ddcbfc1403/Untitled.png)
+
+1. Реализуем для менеджера 
+
+в xaml
+
+```csharp
+<Window x:Class="probnik.admin"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:probnik"
+        mc:Ignorable="d"
+        Title="admin" Height="450" Width="800">
+    <DataGrid  x:Name="RequestDataGrid" AutoGenerateColumns="False" 
+   Height="266" VerticalAlignment="Top" 
+   GridLinesVisibility="All"
+   HorizontalGridLinesBrush="#FF588689" 
+                 VerticalGridLinesBrush="#FF588689" Margin="64,111,0,0" FontFamily="Century Schoolbook" Foreground="Black" 
+               BorderBrush="#FF688CAF" HorizontalScrollBarVisibility="Hidden" FontStretch="Medium" FontWeight="Regular"
+               Background="White" HorizontalAlignment="Left" Width="680">
+
+        <DataGrid.CellStyle>
+            <Style TargetType="DataGridCell">
+                <Setter Property="Background" Value="#ffff"/>
+            </Style>
+        </DataGrid.CellStyle>
+        <DataGrid.Columns>
+
+            <DataGridTextColumn Header="ID" Binding="{Binding RequestID}" Width="30"></DataGridTextColumn>
+            <DataGridTemplateColumn Header="Удалить" Width="70">
+                <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                        <Button Content="Удалить" Click="DeleteButton_Click"/>
+                    </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Статус" Binding="{Binding Status.StatusName}"  Width="70" />
+            <DataGridTextColumn Header="Клиент" Binding="{Binding Users.Login}" Width="70"></DataGridTextColumn>
+            <DataGridTextColumn Header="Исполнитель" Binding="{Binding Users1.Login, UpdateSourceTrigger=PropertyChanged}" Width="100"></DataGridTextColumn>
+            <DataGridTextColumn Header="Дефект" Binding="{Binding Defect.DefectName, UpdateSourceTrigger=PropertyChanged}" Width="80"></DataGridTextColumn>
+            <DataGridTextColumn Header="Девайс" Binding="{Binding Device.DeviceName, UpdateSourceTrigger=PropertyChanged}" Width="80"></DataGridTextColumn>
+            <DataGridTextColumn Header="Описание" Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Width="90"></DataGridTextColumn>
+            <!--<DataGridTextColumn<DataGridTextColumn Header="Бак" Binding="{Binding Vehicles.TankVolume}" Width="100"></DataGridTextColumn>-->
+            <DataGridTextColumn Header="Принято" Binding="{Binding StartDate}" Width="80"></DataGridTextColumn>
+            <DataGridTextColumn Header="Закончено" Binding="{Binding EndDate}" Width="80"></DataGridTextColumn>
+            <!--<DataGridTextColumn Header="Тип топлива" Binding="{Binding RemainingFuel}" Width="100"></DataGridTextColumn>-->
+            <!--<DataGridTextColumn Header="Заправлено" Binding="{Binding FuelAmount}" Width="90"></DataGridTextColumn>-->
+            <!--<DataGridTextColumn Header="Норма расхода" Binding="{Binding StartDuel}" Width="100"></DataGridTextColumn>-->
+            <DataGridTextColumn Header="Комментарий" Binding="{Binding Comment}" Width="110"></DataGridTextColumn>
+
+        </DataGrid.Columns>
+    </DataGrid>
+</Window>
+```
+
+Отображение данных для менеджера 
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.Remoting.Contexts;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+
+namespace probnik
+{
+    /// <summary>
+    /// Логика взаимодействия для admin.xaml
+    /// </summary>
+    public partial class admin : Window
+    {
+        /// <summary>
+        ///  private DatabaseEntities context = new DatabaseEntities();
+        /// </summary>
+        private Users currentUser;
+        public admin(Users user)
+
+        {
+            InitializeComponent();
+            currentUser = user;
+            RequestDataGrid.ItemsSource = LoadRequest();
+
+        }
+
+        private List<Request> LoadRequest()
+        {
+            using (var context = new DatabaseEntities())
+            {
+                var query = context.Request
+                    .Include("Defect")
+                    .Include("Device")
+                    .Include("Status")
+                    .Include("Users")
+                    .Include("Users1");
+
+                // Фильтрация данных на основе роли пользователя
+                if (currentUser.RoleID == 1)
+                {
+                    // Если пользователь - админ, загружаем все запросы
+                    return query.ToList();
+                }
+                else
+                {
+                    return new List<Request>(); // Пустой список, если роль неизвестна
+                }
+            }
+        }
+
+        private void DeleteButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            if (button != null)
+            {
+                var Request = button.DataContext as Request;
+                if (Request != null)
+                {
+                    var messageBoxResult = MessageBox.Show("Вы уверены, что хотите удалить эту запись?", "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (messageBoxResult == MessageBoxResult.Yes)
+                    {
+                        DeleteRequest(Request);
+                        RefreshDataGrid(); // Вызываем обновление DataGrid после удаления записи
+                    }
+                }
+            }
+        }
+
+        private void DeleteRequest(Request Request)
+        {
+            using (var context = new DatabaseEntities())
+            {
+                try
+                {
+                    var logToDelete = context.Request.Find(Request.RequestID);
+                    if (logToDelete != null)
+                    {
+                        context.Request.Remove(logToDelete);
+                        context.SaveChanges();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Запись уже удалена или не существует.");
+                    }
+                }
+                catch (System.Data.Entity.Infrastructure.DbUpdateConcurrencyException)
+                {
+                    MessageBox.Show("Ошибка при удалении: запись была изменена или удалена.");
+                    // Логирование ошибки
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("Произошла ошибка при удалении.");
+                    // Логирование ошибки
+                }
+            }
+        }
+
+        private void RefreshDataGrid()
+        {
+            RequestDataGrid.ItemsSource = null;
+            RequestDataGrid.ItemsSource = LoadRequest();
+        }
+    }
+}
+```
+
+1. ТЕПЕРЬ ДЛЯ КЛИЕНТА 
+
+XAML
+
+```csharp
+<Window x:Class="probnik.cleint"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:probnik"
+        mc:Ignorable="d"
+        Title="cleint" Height="450" Width="800">
+    <Grid>
+        <DataGrid  x:Name="RequestDataGrid" AutoGenerateColumns="False" 
+   Height="266" VerticalAlignment="Top" 
+   GridLinesVisibility="All"
+   HorizontalGridLinesBrush="#FF588689" 
+                 VerticalGridLinesBrush="#FF588689" Margin="64,111,0,0" FontFamily="Century Schoolbook" Foreground="Black" 
+               BorderBrush="#FF688CAF" HorizontalScrollBarVisibility="Hidden" FontStretch="Medium" FontWeight="Regular"
+               Background="White" HorizontalAlignment="Left" Width="680">
+
+            <DataGrid.CellStyle>
+                <Style TargetType="DataGridCell">
+                    <Setter Property="Background" Value="#ffff"/>
+                </Style>
+            </DataGrid.CellStyle>
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="Статус" Binding="{Binding Status.StatusName}"  Width="70" />
+                <DataGridTextColumn Header="Исполнитель" Binding="{Binding Users1.Login, UpdateSourceTrigger=PropertyChanged}" Width="100"></DataGridTextColumn>
+                <DataGridTextColumn Header="Дефект" Binding="{Binding Defect.DefectName, UpdateSourceTrigger=PropertyChanged}" Width="80"></DataGridTextColumn>
+                <DataGridTextColumn Header="Девайс" Binding="{Binding Device.DeviceName, UpdateSourceTrigger=PropertyChanged}" Width="80"></DataGridTextColumn>
+                <DataGridTextColumn Header="Описание" Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Width="90"></DataGridTextColumn>
+                <!--<DataGridTextColumn<DataGridTextColumn Header="Бак" Binding="{Binding Vehicles.TankVolume}" Width="100"></DataGridTextColumn>-->
+                <DataGridTextColumn Header="Принято" Binding="{Binding StartDate}" Width="80"></DataGridTextColumn>
+                <DataGridTextColumn Header="Закончено" Binding="{Binding EndDate}" Width="80"></DataGridTextColumn>
+                <!--<DataGridTextColumn Header="Тип топлива" Binding="{Binding RemainingFuel}" Width="100"></DataGridTextColumn>-->
+                <!--<DataGridTextColumn Header="Заправлено" Binding="{Binding FuelAmount}" Width="90"></DataGridTextColumn>-->
+                <!--<DataGridTextColumn Header="Норма расхода" Binding="{Binding StartDuel}" Width="100"></DataGridTextColumn>-->
+                <DataGridTextColumn Header="Комментарий" Binding="{Binding Comment}" Width="110"></DataGridTextColumn>
+
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>
+```
+
+XAML.CS
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+
+namespace probnik
+{
+    /// <summary>
+    /// Логика взаимодействия для cleint.xaml
+    /// </summary>
+    public partial class cleint : Window
+    {
+        private Users currentUser;
+        public cleint()
+        {
+            InitializeComponent();
+            RequestDataGrid.ItemsSource = LoadRequest();
+        }
+
+        private List<Request> LoadRequest()
+        {
+            using (var context = new DatabaseEntities())
+            {
+                IQueryable<Request> query = context.Request
+                    .Include("Defect")
+                    .Include("Device")
+                    .Include("Status")
+                    .Include("Users")
+                    .Include("Users1");
+
+                if (currentUser != null && currentUser.RoleID == 2)
+                {
+                    // Фильтруем запрос
+                    query = query.Where(r => r.ClientID == currentUser.UserID);
+                }
+
+                // Возвращаем результат как List
+                return query.ToList();
+            }
+        }
+    }
+    }
+```
