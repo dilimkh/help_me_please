@@ -1,0 +1,82 @@
+1. ПКМ по проекту → добавить → База данных основанная службой (необходимо добавить таблицы и настроить).
+2. Чтобы добавить вторичный ключ необходимо прописать следующее
+
+```csharp
+CREATE TABLE ChildTable
+(
+    ChildColumn1 INT,
+    ChildColumn2 INT,
+    ...
+    ParentPrimaryKey INT,
+    FOREIGN KEY (ParentPrimaryKey) REFERENCES ParentTable(ParentPrimaryKeyColumn)
+);
+```
+
+где:
+
+-
+
+- **`ChildTable`** - это имя таблицы, где вы хотите создать внешний ключ.
+- **`ParentPrimaryKey`** - это столбец в **`ChildTable`**, который будет внешним ключом.
+- **`ParentTable`** - это имя родительской таблицы, содержащей первичный ключ.
+- **`ParentPrimaryKeyColumn`** - это имя столбца первичного ключа в родительской таблице, на который **`ParentPrimaryKey`** будет ссылаться.
+
+Далее снова по ПКМ и добавляем шаблон [ADO.NET](http://ADO.NET) и выбираем сервер с расширением только что добавленного БД - .mdf
+
+Если необходимо добавить модели с расширением .tt - открываем графический вариант, ПКМ по таблице выбираем EF 5.0 
+
+ГОТОВО!
+
+## ***Код для создания БД***
+
+CREATE TABLE [dbo].[Defect]
+(
+[DefectID] INT NOT NULL PRIMARY KEY,
+[DefectName] NVARCHAR(255) NULL
+)
+
+CREATE TABLE [dbo].[Device]
+(
+[DeviceID] INT NOT NULL PRIMARY KEY,
+[DeviceName] NVARCHAR(255) NULL
+)
+
+CREATE TABLE [dbo].[Request]
+(
+[RequestID] INT NOT NULL PRIMARY KEY,
+[ClientID] INT NULL,
+[ExecutorID] INT NULL,
+[StatusID] INT NULL,
+[DefectID] INT NULL,
+[DeviceID] INT NULL,
+[Description] NVARCHAR(MAX) NULL,
+[StartDate] DATETIME NULL,
+[EndDate] DATETIME NULL,
+[Comment] NVARCHAR(MAX) NULL,
+FOREIGN KEY (ClientID) REFERENCES Users(UserID),
+FOREIGN KEY (ExecutorID) REFERENCES Users(UserID),
+FOREIGN KEY (StatusID) REFERENCES Status(StatusID),
+FOREIGN KEY (DefectID) REFERENCES Defect(DefectID),
+FOREIGN KEY (DeviceID) REFERENCES Device(DeviceID)
+);
+
+CREATE TABLE [dbo].[Role] (
+[Id]       INT NOT NULL,
+[RoleName] INT NULL,
+PRIMARY KEY CLUSTERED ([Id] ASC)
+);
+
+CREATE TABLE [dbo].[Status]
+(
+[StatusID] INT NOT NULL PRIMARY KEY,
+[StatusName] NVARCHAR(255) NULL
+)
+
+CREATE TABLE [dbo].[Users]
+(
+UserID INT NOT NULL PRIMARY KEY,
+Login NCHAR(255) NULL,
+Password NCHAR(255) NULL,
+RoleID INT NULL,
+FOREIGN KEY (RoleID) REFERENCES Role(Id),
+)
